@@ -1,0 +1,48 @@
+# JSON RPC Middleware API
+
+The JSON RPC Middleware API is a proxy API which proxies the JSON RPC requests
+to a geth instance using the IPC UXIX file. This proxy allows access to whitelisted methods only
+
+## Prerequisites
+
+Before running the API, make sure you have the following prerequisites installed:
+
+- Node.js
+
+## Installation
+
+1. Clone the repository:
+
+  ```bash
+  git clone https://github.com/etccopperative/jsonrpc-middleware-api.git
+  ```
+
+2. Install the dependencies:
+
+  ```bash
+  cd jsonrpc-middleware-api
+  npm install
+  ```
+
+3. Set up the environment variables:
+
+  - Create a `.env` file in the root directory of the project.
+  - Add the following environment variables to the `.env` file:
+
+    ```
+    PORT=3000
+    ```
+
+4. Start the API:
+
+  ```bash
+  npm start
+  ```
+
+## Contributing
+
+Contributions are welcome! If you find any issues or have suggestions for improvements, please open an issue or submit a pull request.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
