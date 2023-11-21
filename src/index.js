@@ -4,6 +4,9 @@ const ipc = require('node-ipc').default;
 
 require('dotenv').config();
 
+const GETH_IPC_NAME = 'geth';
+const GETH_IPC_PATH = process.env.GETH_IPC_PATH || '/tmp/core-geth_classic.ipc';
+
 const port = process.env.PORT || 3000;
 
 const app = express();
@@ -14,14 +17,12 @@ const app = express();
 // For parsing application/json
 app.use(express.json());
 
-ipc.config.id = 'geth';
+ipc.config.id = GETH_IPC_NAME;
 ipc.config.retry = 1500;
 ipc.config.rawBuffer = true;
 ipc.config.silent = true;
 
-const GETH_IPC = 'geth';
-
-ipc.connectTo(GETH_IPC, '/tmp/core-geth_classic.ipc');
+ipc.connectTo(GETH_IPC_NAME, GETH_IPC_NAME_PATH);
 
 let whitelistedMethods = ['eth_blockNumber'];
 
@@ -31,8 +32,8 @@ if (process.env.WHITELISTED_METHODS) {
 
 const sendRequestToGeth = (requestBody) => {
   return new Promise((resolve, reject) => {
-    ipc.of[GETH_IPC].emit(JSON.stringify(requestBody));
-    ipc.of[GETH_IPC].on('data', (response) => {
+    ipc.of[GETH_IPC_NAME].emit(JSON.stringify(requestBody));
+    ipc.of[GETH_IPC_NAME].on('data', (response) => {
       resolve(JSON.parse(response));
     });
   });
