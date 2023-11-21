@@ -22,7 +22,7 @@ ipc.config.retry = 1500;
 ipc.config.rawBuffer = true;
 ipc.config.silent = true;
 
-ipc.connectTo(GETH_IPC_NAME, GETH_IPC_NAME_PATH);
+ipc.connectTo(GETH_IPC_NAME, GETH_IPC_PATH);
 
 let whitelistedMethods = ['eth_blockNumber'];
 
