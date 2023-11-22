@@ -31,10 +31,25 @@ if (process.env.WHITELISTED_METHODS) {
 }
 
 const sendRequestToGeth = (requestBody) => {
+  // Handle byte stream till end of connection
+  let buffer = Buffer.alloc(0);
+
   return new Promise((resolve, reject) => {
+    // Send data to Geth
     ipc.of[GETH_IPC_NAME].emit(JSON.stringify(requestBody));
-    ipc.of[GETH_IPC_NAME].on('data', (response) => {
-      resolve(JSON.parse(response));
+
+    // Listen for data from Geth
+    ipc.of[GETH_IPC_NAME].on('data', (data) => {
+      // Concatenate new data chunk to the existing buffer
+      buffer = Buffer.concat([buffer, data]);
+
+      // Check if reponse is finished
+      if (buffer.includes('\n')) {
+        resolve(JSON.parse(buffer.toString()));
+
+        // Reset the buffer for the next message
+        buffer = Buffer.alloc(0);
+      }
     });
   });
 };
