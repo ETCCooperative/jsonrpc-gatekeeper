@@ -7,6 +7,7 @@ require('dotenv').config();
 const GETH_IPC_NAME = 'geth';
 const GETH_IPC_PATH = process.env.GETH_IPC_PATH || '/tmp/core-geth_classic.ipc';
 
+const rpcTimeoutSeconds = 30;
 const port = process.env.PORT || 3000;
 
 const app = express();
@@ -22,7 +23,18 @@ ipc.config.retry = 1500;
 ipc.config.rawBuffer = true;
 ipc.config.silent = true;
 
-ipc.connectTo(GETH_IPC_NAME, GETH_IPC_PATH);
+ipc.connectTo(GETH_IPC_NAME, GETH_IPC_PATH, () => {
+  ipc.of.geth
+    .on('connect', function () {
+      console.log('Connected to Geth');
+    })
+    .on('disconnect', function () {
+      console.log('Disconnected from Geth');
+    })
+    .on('error', function (error) {
+      console.error('IPC Error:', error);
+    });
+});
 
 let whitelistedMethods = ['eth_blockNumber'];
 
@@ -35,6 +47,11 @@ const sendRequestToGeth = (requestBody) => {
   let buffer = Buffer.alloc(0);
 
   return new Promise((resolve, reject) => {
+    // Timeout after some seconds
+    const timeout = setTimeout(() => {
+      reject(new Error('Request timed out'));
+    }, rpcTimeoutSeconds * 1000);
+
     // Send data to Geth
     ipc.of[GETH_IPC_NAME].emit(JSON.stringify(requestBody));
 
@@ -45,6 +62,8 @@ const sendRequestToGeth = (requestBody) => {
 
       // Check if reponse is finished
       if (buffer.includes('\n')) {
+        clearTimeout(timeout);
+
         resolve(JSON.parse(buffer.toString()));
 
         // Reset the buffer for the next message
@@ -67,6 +86,7 @@ app.post('/', async (req, res) => {
       res.status(403).send('Method not allowed');
     }
   } catch (err) {
+    console.error('Error processing response:', err);
     if (!res.headersSent) {
       res.status(500).send('Internal Server Error');
     }
