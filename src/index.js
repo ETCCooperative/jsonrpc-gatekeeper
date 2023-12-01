@@ -8,7 +8,7 @@ const GETH_IPC_NAME = 'geth';
 const GETH_IPC_PATH = process.env.GETH_IPC_PATH || '/tmp/core-geth_classic.ipc';
 
 const port = process.env.PORT || 3000;
-const rpcTimeoutSeconds = 60;
+const rpcTimeoutSeconds = 10;
 
 const app = express();
 
