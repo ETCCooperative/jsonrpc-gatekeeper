@@ -54,16 +54,19 @@ const generatePeerId = () => {
   return jsonRpcId++;
 };
 
-const sendRequestToGeth = requestBody => {
-  // Handle byte stream till end of connection
-  let buffer = Buffer.alloc(0);
+const buffers = new Map();
 
+const sendRequestToGeth = requestBody => {
   let orginalRequestId = requestBody.id;
   requestBody.id = generatePeerId();
+
+  buffers.set(requestBody.id, Buffer.alloc(0));
 
   return new Promise((resolve, reject) => {
     // Timeout after some seconds
     const timeout = setTimeout(() => {
+      buffers.delete(requestBody.id);
+
       reject(new Error('Request timed out'));
     }, rpcTimeoutSeconds * 1000);
 
@@ -72,6 +75,14 @@ const sendRequestToGeth = requestBody => {
 
     // Listen for data from Geth
     ipc.of[GETH_IPC_NAME].on('data', data => {
+      // Load buffer for this request
+      let buffer = buffers.get(requestBody.id);
+
+      // In case the buffer was deleted and request is handled
+      if (!buffer) {
+        return
+      }
+
       // Concatenate new data chunk to the existing buffer
       buffer = Buffer.concat([buffer, data]);
 
@@ -88,9 +99,11 @@ const sendRequestToGeth = requestBody => {
 
         resolve(res);
 
-        // Reset the buffer for the next message
-        buffer = Buffer.alloc(0);
+        buffers.delete(requestBody.id);
       } catch (err) {
+        // Store the buffer for this request
+        buffers.set(requestBody.id, buffer);
+
         // Wait for more data until JSON.parse performs without throwing
       }
     });
