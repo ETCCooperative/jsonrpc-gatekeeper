@@ -15,7 +15,7 @@ API_URL="http://127.0.0.1:$PORT"
 
 NOW=$(date +"%Y-%m-%d %H:%M:%S")
 
-if ! curl -s -L -H "Content-Type: application/json" --data '{"jsonrpc": "2.0", "id": 2000000, "method": "admin_peers", "params": []}' "$API_URL" > /dev/null; then
+if ! curl --fail -s -L -H "Content-Type: application/json" --data '{"jsonrpc": "2.0", "id": 2000000, "method": "admin_peers", "params": []}' "$API_URL" > /dev/null; then
     echo "[$NOW] Service check failed. Restarting $SYSTEMD_SERVICE..."
     systemctl restart "$SYSTEMD_SERVICE"
 else
