@@ -1,6 +1,6 @@
-# JSON RPC Middleware API
+# JSON RPC Gatekeeper
 
-The JSON RPC Middleware API is a proxy API which proxies the JSON RPC requests
+The JSON RPC Gatekeeper is a proxy API which proxies the JSON RPC requests
 to a geth instance using the IPC UXIX file. This proxy allows access to whitelisted methods only
 
 ## Prerequisites
@@ -14,13 +14,13 @@ Before running the API, make sure you have the following prerequisites installed
 1. Clone the repository:
 
   ```bash
-  git clone https://github.com/etccopperative/jsonrpc-middleware-api.git
+  git clone https://github.com/etccopperative/jsonrpc-gatekeeper.git
   ```
 
 2. Install the dependencies:
 
   ```bash
-  cd jsonrpc-middleware-api
+  cd jsonrpc-gatekeeper
   npm install
   ```
 

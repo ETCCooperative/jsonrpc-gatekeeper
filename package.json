@@ -1,5 +1,5 @@
 {
-  "name": "jsonrpc-middleware-api",
+  "name": "jsonrpc-gatekeeper",
   "version": "1.0.0",
   "description": "A Proxy API for JSON RPC whitelisted methods",
   "main": "src/index.js",

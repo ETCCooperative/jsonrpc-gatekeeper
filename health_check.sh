@@ -5,7 +5,7 @@
 # which is not reliable because of the streaming JSON RPC.
 # The service is being restarted every minute if the health check fails.
 #
-# */1 * * * * /home/geth/jsonrpc-middleware-api/health_check.sh >> /var/log/jsonrpc-middleware-api_health_check.log 2>&1
+# */1 * * * * /home/geth/jsonrpc-gatekeeper/health_check.sh >> /var/log/jsonrpc-gatekeeper_health_check.log 2>&1
 
 # Load the .env file
 source "$(dirname "$0")/.env"
