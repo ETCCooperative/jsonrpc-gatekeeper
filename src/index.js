@@ -1,14 +1,10 @@
 // const cors = require('cors');
 const express = require('express');
-const ipc = require('@node-ipc/node-ipc').default;
+const ethers = require("ethers");
 
 require('dotenv').config();
 
-const GETH_IPC_NAME = 'geth';
-const GETH_IPC_PATH = process.env.GETH_IPC_PATH || '/tmp/core-geth_classic.ipc';
-
 const port = process.env.PORT || 3000;
-const rpcTimeoutSeconds = 10;
 
 const app = express();
 
@@ -18,96 +14,48 @@ const app = express();
 // For parsing application/json
 app.use(express.json());
 
-ipc.config.id = GETH_IPC_NAME;
-ipc.config.retry = 1500;
-ipc.config.rawBuffer = true;
-ipc.config.silent = true;
-ipc.config.sync = true; // Pass single request through IPC and wait for response
-
-ipc.connectTo(GETH_IPC_NAME, GETH_IPC_PATH, () => {
-  ipc.of.geth
-    .on('connect', function() {
-      console.log('Connected to Geth');
-    })
-    .on('disconnect', function() {
-      console.log('Disconnected from Geth');
-    })
-    .on('error', function(error) {
-      console.error('IPC Error:', error);
-    });
-});
-
 let whitelistedMethods = ['eth_blockNumber'];
 
 if (process.env.WHITELISTED_METHODS) {
   whitelistedMethods = process.env.WHITELISTED_METHODS.split(',');
 }
 
-// This will be used to generate unique ids for peers
-let jsonRpcId = 1;
 
-// Generate unique id for peer
-const generatePeerId = () => {
-  if (jsonRpcId >= Number.MAX_SAFE_INTEGER) {
-    jsonRpcId = 1;
+const CLIENT_PROVIDER_URL = process.env.CLIENT_PROVIDER_URL
+let provider
+
+// If the URL starts with http, it will be treated as an HTTP RPC server
+if (CLIENT_PROVIDER_URL.startsWith('http')) {
+  provider = new ethers.JsonRpcProvider(CLIENT_PROVIDER_URL);
+  // If the URL starts with ws, it will be treated as a WebSocket RPC server
+} else if (CLIENT_PROVIDER_URL.startsWith('ws')) {
+  provider = new ethers.WebSocketProvider(CLIENT_PROVIDER_URL);
+  // If the URL ends with ipc, it will be treated as an IPC socket
+} else if (CLIENT_PROVIDER_URL.endsWith('ipc')) {
+  provider = new ethers.IpcSocketProvider(CLIENT_PROVIDER_URL);
+} else {
+  throw new Error('Invalid client provider URL');
+}
+
+const handleRequest = async requestBody => {
+  try {
+    // Assuming the JSON-RPC request is properly formatted
+    const result = await provider.send(requestBody.method, requestBody.params);
+    return {
+        jsonrpc: "2.0",
+        result: result,
+        id: requestBody.id
+    }
+  } catch (error) {
+      return {
+          jsonrpc: "2.0",
+          error: {
+              code: -32603,
+              message: error.message
+          },
+          id: requestBody.id
+      }
   }
-  return jsonRpcId++;
-};
-
-const buffers = new Map();
-
-const sendRequestToGeth = requestBody => {
-  let orginalRequestId = requestBody.id;
-  requestBody.id = generatePeerId();
-
-  buffers.set(requestBody.id, Buffer.alloc(0));
-
-  return new Promise((resolve, reject) => {
-    // Timeout after some seconds
-    const timeout = setTimeout(() => {
-      buffers.delete(requestBody.id);
-
-      reject(new Error('Request timed out'));
-    }, rpcTimeoutSeconds * 1000);
-
-    // Send data to Geth
-    ipc.of[GETH_IPC_NAME].emit(JSON.stringify(requestBody));
-
-    // Listen for data from Geth
-    ipc.of[GETH_IPC_NAME].on('data', data => {
-      // Load buffer for this request
-      let buffer = buffers.get(requestBody.id);
-
-      // In case the buffer was deleted and request is handled
-      if (!buffer) {
-        return
-      }
-
-      // Concatenate new data chunk to the existing buffer
-      buffer = Buffer.concat([buffer, data]);
-
-      // Geth doesn't have a delimiter to catch end of a JSON.
-      // For this reason we try by JSON.parse
-      // https://github.com/ethereum/go-ethereum/issues/3702
-      try {
-        let jsonString = buffer.toString();
-        const res = JSON.parse(jsonString);
-
-        clearTimeout(timeout);
-
-        res.id = orginalRequestId;
-
-        resolve(res);
-
-        buffers.delete(requestBody.id);
-      } catch (err) {
-        // Store the buffer for this request
-        buffers.set(requestBody.id, buffer);
-
-        // Wait for more data until JSON.parse performs without throwing
-      }
-    });
-  });
 };
 
 app.post('/', async (req, res) => {
@@ -117,7 +65,7 @@ app.post('/', async (req, res) => {
       `Serving method "${method}" with params: ${JSON.stringify(params)}`
     );
     if (whitelistedMethods.includes(method)) {
-      const response = await sendRequestToGeth(req.body);
+      const response = await handleRequest(req.body);
       res.json(response);
     } else {
       res.status(403).send('Method not allowed');
