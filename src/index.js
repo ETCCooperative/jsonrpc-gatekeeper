@@ -30,11 +30,14 @@ if (CLIENT_PROVIDER_URL.startsWith('http')) {
   // If the URL starts with ws, it will be treated as a WebSocket RPC server
 } else if (CLIENT_PROVIDER_URL.startsWith('ws')) {
   provider = new ethers.WebSocketProvider(CLIENT_PROVIDER_URL);
-  // If the URL ends with ipc, it will be treated as an IPC socket
-} else if (CLIENT_PROVIDER_URL.endsWith('ipc')) {
-  provider = new ethers.IpcSocketProvider(CLIENT_PROVIDER_URL);
 } else {
-  throw new Error('Invalid client provider URL');
+  // Any unmatched protocol scheme is assumed to be an IPC filepath.
+  // A file path may be relative or absolute, so there's no way of further validating the filepath
+  // under those conditions aside from testing if the file exists.
+  // Since we'd need to validate more than simple file existence (eg. permissions, active geth connection)
+  // to know if tthe Provider is going to work, we'll just pass the URL directly to the IPC provider
+  // and let that throw an error if any.
+  provider = new ethers.IpcSocketProvider(CLIENT_PROVIDER_URL);
 }
 
 const handleRequest = async requestBody => {
